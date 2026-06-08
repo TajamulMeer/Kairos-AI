@@ -1,0 +1,64 @@
+{
+  "expo": {
+    "name": "AIRIX AI",
+    "slug": "airix-ai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "airixai",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/images/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#6C47FF"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.airixai.app",
+      "buildNumber": "1"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#6C47FF"
+      },
+      "package": "com.airixai.app",
+      "versionCode": 1,
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "POST_NOTIFICATIONS"
+      ],
+      "googleServicesFile": "./google-services.json"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      [
+        "expo-splash-screen",
+        { "image": "./assets/images/splash.png", "resizeMode": "contain", "backgroundColor": "#6C47FF" }
+      ],
+      [
+        "expo-notifications",
+        { "icon": "./assets/images/notification-icon.png", "color": "#6C47FF" }
+      ],
+      "@react-native-firebase/app",
+      "@react-native-firebase/auth",
+      "@sentry/react-native/expo"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "eas": { "projectId": "your-eas-project-id" }
+    }
+  }
+}
