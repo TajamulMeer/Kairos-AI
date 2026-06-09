@@ -1,18 +1,17 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
-COPY . .
-RUN npm run build
+COPY apps/backend/package*.json ./apps/backend/
+RUN npm ci --workspace=apps/backend
+COPY apps/backend ./apps/backend
+RUN npm run build --workspace=apps/backend
 
 FROM node:20-alpine AS production
 WORKDIR /app
-RUN addgroup -g 1001 -S nodejs && adduser -S nestjs -u 1001
+ENV NODE_ENV=production
 COPY package*.json ./
-RUN npm ci --only=production && npm cache clean --force
-COPY --from=builder /app/dist ./dist
-USER nestjs
+COPY apps/backend/package*.json ./apps/backend/
+RUN npm ci --workspace=apps/backend --omit=dev
+COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
 EXPOSE 3000
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD wget -qO- http://localhost:3000/health || exit 1
-CMD ["node", "dist/main"]
+CMD ["node", "apps/backend/dist/main.js"]

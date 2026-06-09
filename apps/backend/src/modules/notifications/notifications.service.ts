@@ -52,4 +52,15 @@ export class NotificationsService {
   getUnreadCount(userId: string) {
     return this.notifRepo.count({ where: { userId, isRead: false } });
   }
+
+  async registerFcmToken(userId: string, token: string, platform: string) {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!user) return;
+    const tokens: string[] = user.fcmTokens || [];
+    if (!tokens.includes(token)) {
+      tokens.push(token);
+      await this.userRepo.update(userId, { fcmTokens: tokens });
+    }
+    return { registered: true };
+  }
 }

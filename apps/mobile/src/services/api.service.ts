@@ -1,43 +1,43 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
-import { API_URL } from '@constants/api';
-import { useAuthStore } from '@store/auth.store';
-import * as SecureStore from 'expo-secure-store';
+import axios, {AxiosInstance, AxiosRequestConfig, AxiosError} from 'axios';
+import * as Keychain from 'react-native-keychain';
+import {API_URL} from '@constants/api';
 
-const STORAGE_KEYS = {
-  ACCESS_TOKEN: 'airix_access_token',
-  REFRESH_TOKEN: 'airix_refresh_token',
-};
+const KEYCHAIN_SERVICE = 'airix_tokens';
 
 export const apiClient: AxiosInstance = axios.create({
   baseURL: API_URL,
   timeout: 30000,
-  headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+  headers: {'Content-Type': 'application/json'},
 });
 
-// Request interceptor - attach token
-apiClient.interceptors.request.use(async (config) => {
-  const token = await SecureStore.getItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+apiClient.interceptors.request.use(async config => {
+  const creds = await Keychain.getGenericPassword({service: KEYCHAIN_SERVICE});
+  if (creds) {
+    const tokens = JSON.parse(creds.password);
+    if (tokens.accessToken) {
+      config.headers.Authorization = `Bearer ${tokens.accessToken}`;
+    }
+  }
   return config;
 });
 
-// Response interceptor - handle refresh
 apiClient.interceptors.response.use(
-  (response) => response,
+  res => res,
   async (error: AxiosError) => {
-    const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
+    const orig = error.config as AxiosRequestConfig & {_retry?: boolean};
+    if (error.response?.status === 401 && !orig._retry) {
+      orig._retry = true;
       try {
-        const refreshToken = await SecureStore.getItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
-        const { data } = await axios.post(`${API_URL}/auth/refresh`, { refreshToken });
-        await SecureStore.setItemAsync(STORAGE_KEYS.ACCESS_TOKEN, data.accessToken);
-        if (originalRequest.headers) {
-          originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
+        const creds = await Keychain.getGenericPassword({service: KEYCHAIN_SERVICE});
+        if (creds) {
+          const tokens = JSON.parse(creds.password);
+          const {data} = await axios.post(`${API_URL}/auth/refresh`, {refreshToken: tokens.refreshToken});
+          await setTokens(data.accessToken, data.refreshToken);
+          if (orig.headers) orig.headers.Authorization = `Bearer ${data.accessToken}`;
+          return apiClient(orig);
         }
-        return apiClient(originalRequest);
       } catch {
-        useAuthStore.getState().logout();
+        await clearTokens();
       }
     }
     return Promise.reject(error);
@@ -45,11 +45,9 @@ apiClient.interceptors.response.use(
 );
 
 export async function setTokens(accessToken: string, refreshToken: string) {
-  await SecureStore.setItemAsync(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
-  await SecureStore.setItemAsync(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
+  await Keychain.setGenericPassword('tokens', JSON.stringify({accessToken, refreshToken}), {service: KEYCHAIN_SERVICE});
 }
 
 export async function clearTokens() {
-  await SecureStore.deleteItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
-  await SecureStore.deleteItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
+  await Keychain.resetGenericPassword({service: KEYCHAIN_SERVICE});
 }

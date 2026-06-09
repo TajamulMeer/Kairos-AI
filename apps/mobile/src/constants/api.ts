@@ -1,87 +1,45 @@
-import Constants from 'expo-constants';
-
 const ENV = {
-  dev: { apiUrl: 'http://localhost:3000/api/v1' },
-  staging: { apiUrl: 'https://api-staging.airixai.com/api/v1' },
-  prod: { apiUrl: 'https://api.airixai.com/api/v1' },
+  dev: {apiUrl: 'http://10.0.2.2:3000/api/v1'},
+  staging: {apiUrl: 'https://api-staging.airixai.com/api/v1'},
+  prod: {apiUrl: 'https://api.airixai.com/api/v1'},
 };
 
-const getEnvConfig = () => {
-  const releaseChannel = Constants.expoConfig?.extra?.releaseChannel || 'dev';
-  if (releaseChannel === 'prod') return ENV.prod;
-  if (releaseChannel === 'staging') return ENV.staging;
-  return ENV.dev;
-};
-
-export const API_URL = getEnvConfig().apiUrl;
+const __DEV__ = process.env.NODE_ENV !== 'production';
+export const API_URL = __DEV__ ? ENV.dev.apiUrl : ENV.prod.apiUrl;
 
 export const ENDPOINTS = {
-  // Auth
   AUTH_LOGIN: '/auth/login',
   AUTH_REGISTER: '/auth/register',
   AUTH_FIREBASE: '/auth/firebase',
   AUTH_REFRESH: '/auth/refresh',
-  AUTH_LOGOUT: '/auth/logout',
   AUTH_ME: '/auth/me',
-
-  // Users
   USERS_PROFILE: '/users/profile',
-  USERS_UPDATE: '/users/profile',
   USERS_STUDENT_PROFILE: '/users/student-profile',
-
-  // AI
   AI_DOUBT_SOLVE: '/ai/doubt/solve',
-  AI_STUDY_PLAN: '/ai/study-plan/generate',
-  AI_ANALYZE_TEST: '/ai/test/analyze',
-  AI_FLASHCARDS: '/ai/flashcards/generate',
-  AI_RANK_PREDICT: '/ai/rank/predict',
   AI_MENTOR_CHAT: '/ai/mentor/chat',
-  AI_VISUAL_EXPLAIN: '/ai/visual/explain',
-
-  // Questions
+  AI_RANK_PREDICT: '/ai/rank/predict',
+  AI_FLASHCARDS: '/ai/flashcards/generate',
+  AI_STUDY_PLAN_TODAY: '/ai/study-plan/today',
   QUESTIONS_LIST: '/questions',
-  QUESTIONS_PRACTICE: '/questions/practice',
   QUESTIONS_ADAPTIVE: '/questions/adaptive',
-
-  // Tests
+  QUESTIONS_PRACTICE: '/questions/practice',
   TESTS_LIST: '/tests',
-  TESTS_CREATE: '/tests',
-  TESTS_ATTEMPT_START: '/tests/:id/attempt/start',
-  TESTS_ATTEMPT_SUBMIT: '/tests/:id/attempt/submit',
-  TESTS_ATTEMPT_ANALYSIS: '/tests/:id/attempt/:attemptId/analysis',
-
-  // Study Plans
-  STUDY_PLANS: '/study-plans',
+  TESTS_GENERATE: '/tests/generate/full-length',
   STUDY_PLANS_TODAY: '/study-plans/today',
-  STUDY_PLANS_WEEKLY: '/study-plans/weekly',
-
-  // Analytics
+  STUDY_PLANS_STATS: '/study-plans/stats',
+  STUDY_SESSIONS_START: '/study-plans/sessions/start',
   ANALYTICS_PERFORMANCE: '/analytics/performance',
   ANALYTICS_SUBJECTS: '/analytics/subjects',
   ANALYTICS_FORECAST: '/analytics/forecast',
-
-  // Flashcards
   FLASHCARDS: '/flashcards',
-  FLASHCARDS_DUE: '/flashcards/due',
-  FLASHCARDS_REVIEW: '/flashcards/:id/review',
-
-  // Leaderboard
+  REVISION_DUE: '/revision/due',
   LEADERBOARD_NATIONAL: '/leaderboard/national',
-  LEADERBOARD_STATE: '/leaderboard/state',
-  LEADERBOARD_FRIENDS: '/leaderboard/friends',
-
-  // Gamification
+  LEADERBOARD_MY_RANK: '/leaderboard/my-rank',
   GAMIFICATION_PROFILE: '/gamification/profile',
   GAMIFICATION_ACHIEVEMENTS: '/gamification/achievements',
-  GAMIFICATION_STREAKS: '/gamification/streaks',
-
-  // Subjects
-  SUBJECTS_LIST: '/subjects',
-  CHAPTERS_LIST: '/chapters',
-  TOPICS_LIST: '/topics',
-
-  // Payments
+  PAYMENTS_PLANS: '/payments/plans',
   PAYMENTS_CREATE_ORDER: '/payments/create-order',
   PAYMENTS_VERIFY: '/payments/verify',
-  PAYMENTS_PLANS: '/payments/plans',
+  NOTIFICATIONS: { LIST: '/notifications', REGISTER_TOKEN: '/notifications/register-token', UNREAD_COUNT: '/notifications/unread-count' },
+  SUBJECTS_LIST: '/subjects',
 } as const;
