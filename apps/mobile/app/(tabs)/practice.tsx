@@ -1,108 +1,93 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { Colors, FontSize, Spacing, BorderRadius, Shadow } from '@constants/theme';
-import { apiClient } from '@services/api.service';
-import { ENDPOINTS } from '@constants/api';
+import { router } from 'expo-router';
+import { Colors, FontSize, Spacing, BorderRadius, Shadow } from '@/src/constants/theme';
+import { apiClient } from '@/src/services/api.service';
 
 const SUBJECTS = [
-  { id: 'all', label: 'All', icon: '📚', color: Colors.primary },
-  { id: 'biology', label: 'Biology', icon: '🧬', color: Colors.biology },
-  { id: 'physics', label: 'Physics', icon: '⚛️', color: Colors.physics },
-  { id: 'chemistry', label: 'Chemistry', icon: '🧪', color: Colors.chemistry },
+  { code: 'BIOLOGY', name: 'Biology', icon: '🧬', color: Colors.biology, chapters: 38 },
+  { code: 'PHYSICS', name: 'Physics', icon: '⚛️', color: Colors.physics, chapters: 29 },
+  { code: 'CHEMISTRY', name: 'Chemistry', icon: '🧪', color: Colors.chemistry, chapters: 30 },
 ];
 
-const MODES = [
-  { id: 'adaptive', label: 'Adaptive Practice', icon: '🎯', desc: 'AI selects questions based on your weak areas', color: '#EEF2FF' },
-  { id: 'chapter', label: 'Chapter-wise', icon: '📖', desc: 'Practice by specific chapters', color: '#FFF0EB' },
-  { id: 'previous_year', label: 'Previous Year', icon: '🗓️', desc: 'NEET 2019–2024 questions', color: '#F0FFF4' },
-  { id: 'mock', label: 'Quick Mock', icon: '⚡', desc: '30-question timed session', color: '#FFF8E6' },
+const PRACTICE_MODES = [
+  { id: 'adaptive', icon: '🤖', title: 'AI Adaptive Practice', desc: 'Personalized for your weak areas', color: Colors.primary },
+  { id: 'ncert', icon: '📖', title: 'NCERT Mode', desc: 'Master every NCERT concept', color: Colors.success },
+  { id: 'pyq', icon: '📅', title: 'Previous Year Questions', desc: 'Practice with real NEET PYQs', color: Colors.secondary },
+  { id: 'chapter', icon: '📚', title: 'Chapter Practice', desc: 'Focus on specific chapters', color: Colors.info },
 ];
 
 export default function PracticeScreen() {
-  const [selectedSubject, setSelectedSubject] = useState('all');
+  const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
 
-  const { data: chaptersData, isLoading } = useQuery({
-    queryKey: ['chapters', selectedSubject],
-    queryFn: () => apiClient.get(ENDPOINTS.CHAPTERS_LIST, {
-      params: { subject: selectedSubject !== 'all' ? selectedSubject : undefined },
-    }).then(r => r.data),
+  const { data: adaptiveQuestions, isLoading } = useQuery({
+    queryKey: ['adaptive-questions', selectedSubject],
+    queryFn: () => apiClient.get('/questions/adaptive', { params: { subjectId: selectedSubject, count: 30 } }).then(r => r.data),
+    enabled: false,
   });
+
+  const startPractice = (mode: string, subjectCode?: string) => {
+    router.push({ pathname: '/practice-session', params: { mode, subjectCode } } as any);
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>Practice</Text>
-        <Text style={styles.subtitle}>Choose how you want to practice today</Text>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Practice</Text>
+          <Text style={styles.subtitle}>Master NEET one concept at a time</Text>
+        </View>
 
         {/* Practice Modes */}
-        <View style={styles.modesGrid}>
-          {MODES.map((mode) => (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Practice Modes</Text>
+          <View style={styles.modesGrid}>
+            {PRACTICE_MODES.map(mode => (
+              <TouchableOpacity
+                key={mode.id}
+                style={[styles.modeCard, Shadow.sm, { borderLeftColor: mode.color }]}
+                onPress={() => startPractice(mode.id)}
+              >
+                <Text style={styles.modeIcon}>{mode.icon}</Text>
+                <Text style={styles.modeTitle}>{mode.title}</Text>
+                <Text style={styles.modeDesc}>{mode.desc}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Subjects */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Practice by Subject</Text>
+          {SUBJECTS.map(subject => (
             <TouchableOpacity
-              key={mode.id}
-              style={[styles.modeCard, { backgroundColor: mode.color }, Shadow.sm]}
-              onPress={() => router.push({ pathname: '/practice-session', params: { mode: mode.id } } as any)}
+              key={subject.code}
+              style={[styles.subjectCard, Shadow.sm, { borderLeftColor: subject.color, borderLeftWidth: 4 }]}
+              onPress={() => startPractice('chapter', subject.code)}
             >
-              <Text style={styles.modeIcon}>{mode.icon}</Text>
-              <Text style={styles.modeLabel}>{mode.label}</Text>
-              <Text style={styles.modeDesc}>{mode.desc}</Text>
+              <Text style={styles.subjectIcon}>{subject.icon}</Text>
+              <View style={styles.subjectInfo}>
+                <Text style={styles.subjectName}>{subject.name}</Text>
+                <Text style={styles.subjectChapters}>{subject.chapters} chapters</Text>
+              </View>
+              <Text style={styles.subjectArrow}>→</Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* Subject Filter */}
-        <Text style={styles.sectionTitle}>Browse by Subject</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.subjectScroll}>
-          {SUBJECTS.map((s) => (
-            <TouchableOpacity
-              key={s.id}
-              style={[styles.subjectChip, selectedSubject === s.id && { backgroundColor: s.color, borderColor: s.color }]}
-              onPress={() => setSelectedSubject(s.id)}
-            >
-              <Text style={styles.subjectChipIcon}>{s.icon}</Text>
-              <Text style={[styles.subjectChipLabel, selectedSubject === s.id && styles.subjectChipLabelActive]}>
-                {s.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* Chapters List */}
-        {isLoading ? (
-          <ActivityIndicator color={Colors.primary} style={{ marginTop: Spacing.xl }} />
-        ) : (
-          <View style={styles.chaptersList}>
-            {(chaptersData?.chapters || []).map((chapter: any) => (
-              <TouchableOpacity
-                key={chapter.id}
-                style={[styles.chapterCard, Shadow.sm]}
-                onPress={() => router.push({ pathname: '/practice-session', params: { chapterId: chapter.id, mode: 'chapter' } } as any)}
-              >
-                <View style={styles.chapterLeft}>
-                  <View style={[styles.chapterDot, { backgroundColor: chapter.subjectColor || Colors.primary }]} />
-                  <View>
-                    <Text style={styles.chapterName}>{chapter.name}</Text>
-                    <Text style={styles.chapterMeta}>{chapter.subject} • {chapter.questionCount} questions</Text>
-                  </View>
-                </View>
-                <View style={styles.chapterRight}>
-                  <Text style={[styles.chapterAccuracy, { color: chapter.accuracy > 70 ? Colors.success : chapter.accuracy > 40 ? Colors.warning : Colors.error }]}>
-                    {chapter.accuracy ? `${chapter.accuracy.toFixed(0)}%` : '--'}
-                  </Text>
-                  <Text style={styles.chapterArrow}>→</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-            {(!chaptersData?.chapters || chaptersData.chapters.length === 0) && (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyEmoji}>📚</Text>
-                <Text style={styles.emptyText}>No chapters found for this subject.</Text>
-              </View>
-            )}
+        {/* Quick 10-question drill */}
+        <View style={[styles.quickDrill, Shadow.primary]}>
+          <Text style={styles.quickDrillEmoji}>⚡</Text>
+          <View style={styles.quickDrillInfo}>
+            <Text style={styles.quickDrillTitle}>Quick Drill — 10 Questions</Text>
+            <Text style={styles.quickDrillSub}>Mixed topics • ~15 minutes</Text>
           </View>
-        )}
+          <TouchableOpacity style={styles.quickDrillBtn} onPress={() => startPractice('quick')}>
+            <Text style={styles.quickDrillBtnText}>Start</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -110,30 +95,27 @@ export default function PracticeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  content: { padding: Spacing.lg, paddingBottom: 32 },
-  title: { fontSize: FontSize.xxl, fontWeight: '800', color: Colors.gray900, marginBottom: Spacing.xs },
-  subtitle: { fontSize: FontSize.sm, color: Colors.gray600, marginBottom: Spacing.lg },
-  modesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, marginBottom: Spacing.xl },
-  modeCard: { width: '48%', borderRadius: BorderRadius.xl, padding: Spacing.md, gap: Spacing.xs },
-  modeIcon: { fontSize: 28 },
-  modeLabel: { fontSize: FontSize.sm, fontWeight: '800', color: Colors.gray900 },
-  modeDesc: { fontSize: FontSize.xs, color: Colors.gray600, lineHeight: 16 },
+  header: { padding: Spacing.lg },
+  title: { fontSize: FontSize.xxl, fontWeight: '800', color: Colors.gray900 },
+  subtitle: { fontSize: FontSize.sm, color: Colors.gray500, marginTop: 2 },
+  section: { paddingHorizontal: Spacing.lg, marginBottom: Spacing.lg },
   sectionTitle: { fontSize: FontSize.lg, fontWeight: '800', color: Colors.gray900, marginBottom: Spacing.md },
-  subjectScroll: { marginBottom: Spacing.lg },
-  subjectChip: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md, borderRadius: BorderRadius.full, borderWidth: 1.5, borderColor: Colors.gray300, backgroundColor: Colors.white, marginRight: Spacing.sm },
-  subjectChipIcon: { fontSize: 16 },
-  subjectChipLabel: { fontSize: FontSize.sm, fontWeight: '600', color: Colors.gray700 },
-  subjectChipLabelActive: { color: Colors.white },
-  chaptersList: { gap: Spacing.sm },
-  chapterCard: { backgroundColor: Colors.white, borderRadius: BorderRadius.xl, padding: Spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  chapterLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, flex: 1 },
-  chapterDot: { width: 12, height: 12, borderRadius: 6 },
-  chapterName: { fontSize: FontSize.sm, fontWeight: '700', color: Colors.gray900 },
-  chapterMeta: { fontSize: FontSize.xs, color: Colors.gray500, marginTop: 2 },
-  chapterRight: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  chapterAccuracy: { fontSize: FontSize.sm, fontWeight: '800' },
-  chapterArrow: { fontSize: FontSize.sm, color: Colors.gray400 },
-  emptyState: { alignItems: 'center', padding: Spacing.xxl },
-  emptyEmoji: { fontSize: 48, marginBottom: Spacing.md },
-  emptyText: { fontSize: FontSize.base, color: Colors.gray500, textAlign: 'center' },
+  modesGrid: { gap: Spacing.sm },
+  modeCard: { backgroundColor: Colors.white, borderRadius: BorderRadius.xl, padding: Spacing.md, borderLeftWidth: 4, flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  modeIcon: { fontSize: 28 },
+  modeTitle: { fontSize: FontSize.sm, fontWeight: '700', color: Colors.gray900, flex: 1 },
+  modeDesc: { fontSize: FontSize.xs, color: Colors.gray500 },
+  subjectCard: { backgroundColor: Colors.white, borderRadius: BorderRadius.xl, padding: Spacing.md, flexDirection: 'row', alignItems: 'center', gap: Spacing.md, marginBottom: Spacing.sm },
+  subjectIcon: { fontSize: 32 },
+  subjectInfo: { flex: 1 },
+  subjectName: { fontSize: FontSize.base, fontWeight: '700', color: Colors.gray900 },
+  subjectChapters: { fontSize: FontSize.xs, color: Colors.gray500, marginTop: 2 },
+  subjectArrow: { fontSize: FontSize.lg, color: Colors.primary, fontWeight: '700' },
+  quickDrill: { margin: Spacing.lg, backgroundColor: Colors.primary, borderRadius: BorderRadius.xl, padding: Spacing.lg, flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  quickDrillEmoji: { fontSize: 32 },
+  quickDrillInfo: { flex: 1 },
+  quickDrillTitle: { fontSize: FontSize.base, fontWeight: '800', color: Colors.white },
+  quickDrillSub: { fontSize: FontSize.xs, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
+  quickDrillBtn: { backgroundColor: Colors.white, borderRadius: BorderRadius.full, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md },
+  quickDrillBtnText: { color: Colors.primary, fontWeight: '800', fontSize: FontSize.sm },
 });
